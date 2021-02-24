@@ -5,7 +5,7 @@
 use std::net::{Incoming, Shutdown, SocketAddr, TcpStream};
 
 use ed25519_dalek as ed25519;
-use eyre::Result;
+use eyre::{Result, WrapErr};
 
 use super::super::super::secret_connection::{SecretConnection, Version};
 use super::super::super::transport::*;
@@ -46,21 +46,29 @@ impl MConnection {
 
 impl Connection for MConnection {
     type Error = std::io::Error;
-    type Read = 
-    type Write = 
+    type Read = TcpStream;
+    type Write = TcpStream;
 
-    fn advertised_addrs(&self) -> Vec<SocketAddr> {}
-    fn close(&self) -> Result<()> {
-        self.stream.shutdown(Shutdown::Both)
+    fn advertised_addrs(&self) -> Vec<SocketAddr> {
+        vec![]
     }
+
+    fn close(&self) -> Result<()> {
+        self.stream
+            .shutdown(Shutdown::Both)
+            .wrap_err("failed to shutdown")
+    }
+
     fn local_addr(&self) -> SocketAddr {
         self.stream.local_addr().unwrap()
     }
+
     fn open_bidirectional(
         &self,
         stream_id: &StreamId,
     ) -> Result<(Self::Read, Self::Write), Self::Error> {
     }
+
     fn public_key(&self) -> tendermint::public_key::PublicKey {}
     fn remote_addr(&self) -> SocketAddr {}
 }
@@ -76,7 +84,7 @@ impl Endpoint for MEndpoint {
 impl<'a> Iterator for MIncoming<'a> {
     type Item = Result<MConnection>;
 
-    fn next(&mut self) -> Option<u32> {}
+    fn next(&mut self) -> Option<Self::Item> {}
 }
 
 impl<'a> Transport for MConnectionTransport<'a> {
