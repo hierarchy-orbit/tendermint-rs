@@ -177,7 +177,10 @@ impl<'a> Transport for MConnectionTransport<'a> {
         ))
     }
 
-    fn shutdown(&self) -> Result<()> {}
+    fn shutdown(&self) -> Result<()> {
+        // The socket will be closed when the MConnectionTransport is dropped.
+        Ok(())
+    }
 }
 
 #[cfg(test)]

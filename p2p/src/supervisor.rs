@@ -2,8 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::thread;
 
+use ed25519_dalek as ed25519;
 use eyre::{eyre, Context, Report, Result};
 use flume::{unbounded, Receiver, Sender};
+use rand_core::OsRng;
 
 use tendermint::node;
 use tendermint::public_key::PublicKey;
@@ -11,6 +13,8 @@ use tendermint::public_key::PublicKey;
 use crate::message;
 use crate::peer;
 use crate::transport::{self, Connection, Endpoint as _};
+
+use super::secret_connection;
 
 pub enum Direction {
     Incoming,
@@ -76,17 +80,17 @@ impl Supervisor {
         let (event_tx, events) = unbounded();
         let supervisor = Self { command, events };
 
+        let mut csprng = OsRng {};
+        let private_key: ed25519::Keypair = ed25519::Keypair::generate(&mut csprng);
         let (endpoint, mut incoming) = transport.bind(transport::BindInfo {
             addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 12345),
             advertise_addrs: vec![SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
                 12345,
             )],
-            public_key: PublicKey::from_raw_ed25519(&[
-                215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7, 58, 14, 225,
-                114, 243, 218, 166, 35, 37, 175, 2, 26, 104, 247, 7, 81, 26,
-            ])
-            .unwrap(),
+            public_key: PublicKey::Ed25519(private_key.public),
+            private_key,
+            protocol_version: secret_connection::Version::V0_34,
         })?;
 
         // ACCEPT
