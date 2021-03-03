@@ -3,6 +3,7 @@
 //! Spec: https://github.com/tendermint/spec/blob/master/spec/p2p/connection.md#p2p-multiplex-connection
 
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
+use std::sync::Arc;
 use std::time::Duration;
 
 use ed25519_dalek as ed25519;
@@ -11,10 +12,7 @@ use eyre::{Result, WrapErr};
 use super::super::super::secret_connection::{SecretConnection, Version};
 use super::super::super::transport::*;
 
-struct MConnectionTransport {
-    incoming: MIncoming,
-    endpoint: MEndpoint,
-}
+struct MConnectionTransport {}
 
 struct MConnection {
     public_key: ed25519::PublicKey,
@@ -23,14 +21,13 @@ struct MConnection {
 }
 
 struct MEndpoint {
-    private_key: ed25519::Keypair,
+    private_key: Arc<ed25519::Keypair>,
     protocol_version: Version,
 }
 
 struct MIncoming {
     tcp_listener: TcpListener,
-    // TODO: duplicate fields between MEndpoint and MIncoming
-    private_key: ed25519::Keypair,
+    private_key: Arc<ed25519::Keypair>,
     protocol_version: Version,
 }
 
@@ -103,8 +100,8 @@ impl Connection for MConnection {
     fn open_bidirectional(
         &self,
         _stream_id: &StreamId,
-    ) -> Result<(Self::Read, Self::Write), Self::Error> {
-        Ok((self.secret_connection, self.secret_connection))
+    ) -> Result<(&Self::Read, &Self::Write), Self::Error> {
+        Ok((&self.secret_connection, &self.secret_connection))
     }
 
     fn public_key(&self) -> tendermint::public_key::PublicKey {
@@ -173,14 +170,15 @@ impl Transport for MConnectionTransport {
 
     fn bind(&self, bind_info: BindInfo) -> Result<(MEndpoint, MIncoming)> {
         let listener = TcpListener::bind(bind_info.addr)?;
+        let pk = Arc::new(bind_info.private_key);
         Ok((
             MEndpoint {
-                private_key: bind_info.private_key,
+                private_key: pk.clone(),
                 protocol_version: bind_info.protocol_version,
             },
             MIncoming {
                 tcp_listener: listener,
-                private_key: bind_info.private_key,
+                private_key: pk.clone(),
                 protocol_version: bind_info.protocol_version,
             },
         ))

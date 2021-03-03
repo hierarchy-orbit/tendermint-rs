@@ -44,7 +44,7 @@ pub trait Connection: Send {
     fn open_bidirectional(
         &self,
         stream_id: &StreamId,
-    ) -> Result<(Self::Read, Self::Write), Self::Error>;
+    ) -> Result<(&Self::Read, &Self::Write), Self::Error>;
     fn public_key(&self) -> PublicKey;
     fn remote_addr(&self) -> SocketAddr;
 }
