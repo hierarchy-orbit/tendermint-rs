@@ -217,16 +217,16 @@ impl Transport for MConnectionTransport {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn bind_and_connect() {}
+//     #[test]
+//     fn bind_and_connect() {}
 
-    #[test]
-    fn bind_and_connect_timeout() {}
+//     #[test]
+//     fn bind_and_connect_timeout() {}
 
-    #[test]
-    fn bind_and_accept() {}
-}
+//     #[test]
+//     fn bind_and_accept() {}
+// }
