@@ -112,6 +112,8 @@ impl Connection for MConnection {
 impl Endpoint for MEndpoint {
     type Connection = MConnection;
 
+    /// Connects to the specified address using either `MConnection::connect` or
+    /// `MConnection::connect_timeout` depending on whenever `ConnectInfo.timeout` is zero or not.
     fn connect(&self, info: ConnectInfo) -> Result<Self::Connection> {
         if info.timeout > Duration::new(0, 0) {
             MConnection::connect_timeout(
@@ -133,6 +135,7 @@ impl Endpoint for MEndpoint {
 impl Iterator for MIncoming {
     type Item = Result<MConnection>;
 
+    /// Advances the iterator and returns the next `MConnection`.
     fn next(&mut self) -> Option<Result<MConnection>> {
         let public_key = self.private_key.public;
 
@@ -168,6 +171,29 @@ impl Transport for MConnectionTransport {
     type Endpoint = MEndpoint;
     type Incoming = MIncoming;
 
+    /// Creates a new `TcpListener` which will be bound to the specified address.
+    /// The private key will be used to establish a `SecretConnection` each time you connect or
+    /// accept a connection.
+    ///
+    /// See `TcpListener::bind`
+    ///
+    /// # Examples
+    ///
+    /// Creates a TCP listener bound to `127.0.0.1:80`:
+    ///
+    /// ```no_run
+    ///use rand::rngs::OsRng;
+    /// use ed25519_dalek::Keypair;
+    /// use ed25519_dalek::Signature;
+    ///
+    /// let mut csprng = OsRng{};
+    ///
+    /// let t = MConnectionTransport{}
+    /// let (endpoint, incoming) = t.bind(BindInfo{
+    ///     addr: "127.0.0.1:80",
+    ///     private_key: Keypair::generate(&mut csprng),
+    /// }).unwrap();
+    /// ```
     fn bind(&self, bind_info: BindInfo) -> Result<(MEndpoint, MIncoming)> {
         let listener = TcpListener::bind(bind_info.addr)?;
         let pk = Arc::new(bind_info.private_key);
@@ -184,6 +210,7 @@ impl Transport for MConnectionTransport {
         ))
     }
 
+    /// Noop.
     fn shutdown(&self) -> Result<()> {
         // The socket will be closed when the MConnectionTransport is dropped.
         Ok(())
@@ -195,5 +222,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn public_key_test() {}
+    fn bind_and_connect() {}
+
+    #[test]
+    fn bind_and_connect_timeout() {}
+
+    #[test]
+    fn bind_and_accept() {}
 }
